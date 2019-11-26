@@ -8,93 +8,81 @@ var ipfsPort = process.env.IPFSPORT || '5001';
 var ipfsProtocol = process.env.IPFSPROTOCOL || 'http';
 
 var cmds = {
-
 	ffprobe_cmds: {
-
 		createCmdString: (filePath) => {
 			str1 = "ffprobe -v error -of default=nw=1 -show_entries stream_tags=rotate:format=size,duration:stream=index,codec_name,pix_fmt,height,width,duration,nb_frames,avg_frame_rate,bit_rate "
 			str2 = " -print_format json"
 
-			return str1+filePath+str2
+			return str1 + filePath + str2
 		}
-
 	},
 	ipfs_cmds: {
-
 		// uploads file to ipfs, second parameter is the property to update within encoder response
 		ipfsUpload: (filePath, justHash, prop) => {
 			//Connceting to our http api
-			const ipfs = ipfsAPI(ipfsIp, ipfsPort, {protocol: ipfsProtocol})
+			const ipfs = ipfsAPI(ipfsIp, ipfsPort, { protocol: ipfsProtocol })
 			//let videoFile = fs.readFileSync(filePath);
 			//let testBuffer = new Buffer.from(videoFile);
 
-			ipfs.add(videoFile, {"only-hash": justHash}, function (err, file) {
+			ipfs.add(videoFile, { "only-hash": justHash }, function (err, file) {
 
 				if (err) {
 					console.log(err);
 					process.exit();
 				}
 				// updating relevant encoder response fields
-				cmds.setObjPropToValue(cmds.encoderResponse, prop+".progress", "100.00%");
-				cmds.setObjPropToValue(cmds.encoderResponse, prop+".lastTimeProgress", Date());
-				cmds.setObjPropToValue(cmds.encoderResponse, prop+".step", "success");
-				cmds.setObjPropToValue(cmds.encoderResponse, prop+".hash", file[0].hash);
-				cmds.setObjPropToValue(cmds.encoderResponse, prop+".fileSize", file[0].size);
+				cmds.setObjPropToValue(cmds.encoderResponse, prop + ".progress", "100.00%");
+				cmds.setObjPropToValue(cmds.encoderResponse, prop + ".lastTimeProgress", Date());
+				cmds.setObjPropToValue(cmds.encoderResponse, prop + ".step", "success");
+				cmds.setObjPropToValue(cmds.encoderResponse, prop + ".hash", file[0].hash);
+				cmds.setObjPropToValue(cmds.encoderResponse, prop + ".fileSize", file[0].size);
 
 			});
-
 		}
 	},
 	sprite_cmds: {
-
 		sprite: (filePath, vidLength, resDir) => {
 			var splitCmd = cmds.sprite_cmds.createVideoSplitCmd(filePath, vidLength, resDir);
 			var montCmd = cmds.sprite_cmds.createMontageCmd(resDir);
 			cmds.sprite_cmds.createSprite(splitCmd, montCmd);
 		},
-
 		// splits video into images
 		createVideoSplitCmd: (filePath, vidLength, resDir) => {
-
 			// if (vidLength > 600) {
 			// 	var frameRate = 100/vidLength;
 			// } else {
 			// 	var frameRate = 1;
 			// }
 
-			let frameRate = 100/vidLength;
+			let frameRate = 100 / vidLength;
 
-			return `ffmpeg -y -i `+filePath+ ` -r `+frameRate+` -vf scale=128:72 -f image2 `+resDir+`/img%03d`
+			return `ffmpeg -y -i ` + filePath + ` -r ` + frameRate + ` -vf scale=128:72 -f image2 ` + resDir + `/img%03d`
 		},
-
 		// concatenates all the images together
 		createMontageCmd: (resDir) => {
-			return `montage -mode concatenate -tile 1x `+resDir+`/* `+resDir+`/sprite.png`
+			return `montage -mode concatenate -tile 1x ` + resDir + `/* ` + resDir + `/sprite.png`
 		},
-
 		createSprite: (splitCmd, montCmd) => {
+			var timeoutfunc = setTimeout(() => {
+				console.log("Sprite makin timed out")
+				console.log("Killing container")
+				process.exit();
+			}, 600000);
 
-      var timeoutfunc = setTimeout(()=>{
-          console.log("Sprite makin timed out")
-          console.log("Killing container")
-          process.exit();
-        }, 600000);
-
-			shell.exec(splitCmd,function(code, stdout, stderr) {
-
+			shell.exec(splitCmd, function (code, stdout, stderr) {
 				// code isn't 0 if error occurs
 				if (code) {
 					console.log(stderr);
 					process.exit();
 				} else {
-					shell.exec(montCmd, function(code, stdout, stderr){
+					shell.exec(montCmd, function (code, stdout, stderr) {
 						// code isn't 0 if error occurs
 						if (code) {
 							console.log(stderr);
 							process.exit();
 						} else {
-              clearTimeout(timeoutfunc)
-              console.log("sprite completed")
+							clearTimeout(timeoutfunc)
+							console.log("sprite completed")
 							//if no errors, update relevant encoder response fields and upload to ipfs
 							cmds.encoderResponse.sprite.spriteCreation.progress = "100.00%";
 							cmds.encoderResponse.sprite.spriteCreation.lastTimeProgress = Date();
@@ -104,13 +92,10 @@ var cmds = {
 						}
 					});
 				}
-
 			});
 		}
-
 	},
 	encoder_cmds: {
-
 		encoderSettings: {
 			input: '',
 			output: '',
@@ -121,7 +106,6 @@ var cmds = {
 			encoder: "x264",
 			rate: "30"
 		},
-
 		changeSettings: (filePath, resName, maxWidth, maxHeight) => {
 			let settings = cmds.encoder_cmds.encoderSettings;
 			settings.input = filePath;
@@ -132,15 +116,13 @@ var cmds = {
 			return settings
 
 		},
-
 		encode: (settings, encodedVideoIndex, cb) => {
-
-      var timeoutfunc = setTimeout(()=>{
-          console.log("Encoder timed out")
-          console.log("Killing container")
-          process.exit();
-        },1800000);
-			var noop = function(){};
+			var timeoutfunc = setTimeout(() => {
+				console.log("Encoder timed out")
+				console.log("Killing container")
+				process.exit();
+			}, 1800000);
+			var noop = function () { };
 			cb = cb || noop;
 
 			let propIpfs = 'encodedVideos[' + String(encodedVideoIndex) + '].ipfsAddEncodeVideo';
@@ -150,17 +132,17 @@ var cmds = {
 				.on('error', err => {
 					// console.log(err);
 					cmds.encoderResponse.encodedVideos[encodedVideoIndex].encode.errorMessage = err;
-          console.log("Exiting process, encoding error");
+					console.log("Exiting process, encoding error");
 					process.exit();
 				})
 				.on('progress', progress => {
-          console.log("Encoding progress, video index: "+ encodedVideoIndex)
-					cmds.encoderResponse.encodedVideos[encodedVideoIndex].encode.progress = String(progress.percentComplete)+"%";
+					console.log("Encoding progress, video index: " + encodedVideoIndex)
+					cmds.encoderResponse.encodedVideos[encodedVideoIndex].encode.progress = String(progress.percentComplete) + "%";
 					cmds.encoderResponse.encodedVideos[encodedVideoIndex].encode.lastTimeProgress = Date();
 				})
 				.on('complete', () => {
-          console.log("Encoding completed, video index: " + encodedVideoIndex)
-          clearTimeout(timeoutfunc)
+					console.log("Encoding completed, video index: " + encodedVideoIndex)
+					clearTimeout(timeoutfunc)
 					// when complete, upload to ipfs
 					cmds.ipfs_cmds.ipfsUpload(outputName, true, propIpfs);
 					cb();
@@ -204,10 +186,8 @@ var cmds = {
 		},
 		encodedVideos: []
 	},
-
 	// adds encoded video data fields to encoder response
 	addEncodedVideoData: (encodeSize) => {
-
 		var num = encodeSize.length;
 
 		for (let i = 0; i < num; i++) {
@@ -220,23 +200,21 @@ var cmds = {
 					step: "Waiting",
 					positionInQueue: null
 				},
-					ipfsAddEncodeVideo: {
-						progress: null,
-						encodeSize: "",
-						lastTimeProgress: null,
-						errorMessage: null,
-						step: "init",
-						positionInQueue: null,
-						hash: null,
-						fileSize: null
-					}
+				ipfsAddEncodeVideo: {
+					progress: null,
+					encodeSize: "",
+					lastTimeProgress: null,
+					errorMessage: null,
+					step: "init",
+					positionInQueue: null,
+					hash: null,
+					fileSize: null
+				}
 			});
 			cmds.encoderResponse.encodedVideos[i].encode.encodeSize = encodeSize[i];
 			cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.encodeSize = encodeSize[i];
 		}
-
 	},
-
 	// function for setting deep nested object property values
 	setObjPropToValue: (obj, path, value) => {
 		var i;
@@ -246,26 +224,24 @@ var cmds = {
 
 		obj[path[i]] = value;
 	},
-
 	moveFiles: (filePath, numOfEncodedVids) => {
-
 		var oldEncodedVidPaths = ["fileres240.mp4", "fileres480.mp4"];
 
 		var is = fs.createReadStream(filePath);
 		var os = fs.createWriteStream("./longtermstore/" + cmds.encoderResponse.ipfsAddSourceVideo.hash);
 
 		is.pipe(os);
-		is.on('end',function() {
-		    fs.unlinkSync(filePath);
+		is.on('end', function () {
+			fs.unlinkSync(filePath);
 		});
 
-		for(let i=0; i<numOfEncodedVids; i++){
+		for (let i = 0; i < numOfEncodedVids; i++) {
 			is = fs.createReadStream(oldEncodedVidPaths[i]);
 			os = fs.createWriteStream("./longtermstore/" + cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.hash);
 
 			is.pipe(os);
-			is.on('end',function() {
-			    fs.unlinkSync(oldEncodedVidPaths[i]);
+			is.on('end', function () {
+				fs.unlinkSync(oldEncodedVidPaths[i]);
 			});
 		}
 
@@ -273,46 +249,38 @@ var cmds = {
 		os = fs.createWriteStream("./longtermstore/" + cmds.encoderResponse.sprite.ipfsAddSprite.hash);
 
 		is.pipe(os);
-		is.on('end',function() {
-		    fs.unlinkSync("./sprite/sprite.png");
+		is.on('end', function () {
+			fs.unlinkSync("./sprite/sprite.png");
 		});
-
 	},
-
 	// checking encoder response values to ensure everything is done before setting finished to true
 	checkIfFinished: (filePath) => {
 		var numOfEncodedVids = cmds.encoderResponse.encodedVideos.length
-		console.log("We should have encoded: "+numOfEncodedVids+" videos");
-		var func = setInterval(()=>{
-
+		console.log("We should have encoded: " + numOfEncodedVids + " videos");
+		var func = setInterval(() => {
 			// creating an array of encoded video hashes to iterate through in the "if"
 			var encodedVidsHash = [];
-			for (let i = 0; i < numOfEncodedVids; i++)
-			{
+			for (let i = 0; i < numOfEncodedVids; i++) {
 				encodedVidsHash.push(cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.hash);
 			}
 
-			if (cmds.encoderResponse.ipfsAddSourceVideo.hash && cmds.encoderResponse.sprite.ipfsAddSprite.hash && encodedVidsHash.every((hash) => {return hash})){
+			if (cmds.encoderResponse.ipfsAddSourceVideo.hash && cmds.encoderResponse.sprite.ipfsAddSprite.hash && encodedVidsHash.every((hash) => { return hash })) {
 				clearInterval(func);
-        console.log("Moving files to long term storage")
-        console.log(cmds.encoderResponse)
+				console.log("Moving files to long term storage")
+				console.log(cmds.encoderResponse)
 				cmds.moveFiles(filePath, numOfEncodedVids)
 				// wait before setting finished to true and ending process
-				setTimeout(()=>{
+				setTimeout(() => {
 					cmds.encoderResponse.finished = true;
-          console.log("Encoder finished")
+					console.log("Encoder finished")
 				}, 1000);
-				setTimeout(()=>{
-          console.log("Killing container")
+				setTimeout(() => {
+					console.log("Killing container")
 					process.exit();
-				},10000);
+				}, 10000);
 			}
-
-		},2000);
-
-	},
-
-
+		}, 2000);
+	}
 }
 
 module.exports = cmds
