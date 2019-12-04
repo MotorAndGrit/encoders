@@ -5,7 +5,7 @@ const formidable = require('formidable');
 var cmds = require('./video-processor-cmds.js');
 
 // cross-origin resource sharing variable
-corsVar = process.env.CORSVAR || 'https://d.tube';
+corsVar = process.env.CORSVAR || 'http://localhost:3000';
 
 // variable to assure only one upload request happens
 var reqhappened = false;
@@ -29,7 +29,6 @@ http.createServer(function (req, res) {
 
 	// sending encoder progress to user
 	if (req.url.match(/\/getProgressByToken.*/)) {
-
 		res.end(JSON.stringify(cmds.encoderResponse));
 	}
 

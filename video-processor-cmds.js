@@ -20,8 +20,9 @@ var cmds = {
 		// uploads file to ipfs, second parameter is the property to update within encoder response
 		ipfsUpload: (filePath, justHash, prop) => {
 			//Connceting to our http api
+			console.log(filePath)
 			const ipfs = ipfsAPI(ipfsIp, ipfsPort, { protocol: ipfsProtocol })
-			//let videoFile = fs.readFileSync(filePath);
+			let videoFile = fs.readFileSync(filePath);
 			//let testBuffer = new Buffer.from(videoFile);
 
 			ipfs.add(videoFile, { "only-hash": justHash }, function (err, file) {
@@ -241,6 +242,14 @@ var cmds = {
 
 			is.pipe(os);
 			is.on('end', function () {
+				console.log(filePath, cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo)
+				cmds.symlink(
+					cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.hash,
+					"./longtermstore/"+cmds.encoderResponse.ipfsAddSourceVideo.hash+"_"+cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.encodeSize,
+					function(err) {
+						console.log('symlinked '+cmds.encoderResponse.ipfsAddSourceVideo.hash+"_"+cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.encodeSize)
+					}
+				)
 				fs.unlinkSync(oldEncodedVidPaths[i]);
 			});
 		}
@@ -251,6 +260,18 @@ var cmds = {
 		is.pipe(os);
 		is.on('end', function () {
 			fs.unlinkSync("./sprite/sprite.png");
+		});
+	},
+	symlink: (source, linkName, cb) => {
+		var cmd = 'ln -s '+source+' '+linkName
+		shell.exec(cmd, function (code, stdout, stderr) {
+			// code isn't 0 if error occurs
+			if (code) {
+				console.log(stderr);
+				process.exit();
+			} else {
+				cb(null)
+			}
 		});
 	},
 	// checking encoder response values to ensure everything is done before setting finished to true
