@@ -6,6 +6,8 @@ var cmds = require('./video-processor-cmds.js');
 
 // cross-origin resource sharing variable
 corsVar = process.env.CORSVAR || 'http://localhost:3000';
+// port variable
+port = process.env.PORT || 5000
 
 // variable to assure only one upload request happens
 var reqhappened = false;
@@ -151,6 +153,6 @@ http.createServer(function (req, res) {
 		res.end("There's nothing here for you");
 	}
 
-}).listen(5000, () => {
-	console.log("listening on port 5000");
+}).listen(port, () => {
+	console.log("listening on port "+port);
 });
