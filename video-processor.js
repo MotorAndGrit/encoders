@@ -31,6 +31,7 @@ http.createServer(function (req, res) {
 
 	// sending encoder progress to user
 	if (req.url.match(/\/getProgressByToken.*/)) {
+		console.log("getProgressByToken Hit")
 		res.end(JSON.stringify(cmds.encoderResponse));
 	}
 
