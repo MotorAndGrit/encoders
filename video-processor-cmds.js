@@ -91,7 +91,7 @@ var cmds = {
 							cmds.encoderResponse.sprite.spriteCreation.progress = "100.00%";
 							cmds.encoderResponse.sprite.spriteCreation.lastTimeProgress = Date();
 							cmds.encoderResponse.sprite.spriteCreation.step = "Success";
-							cmds.ipfs_cmds.ipfsUpload("./sprite/sprite.png", true, 'sprite.ipfsAddSprite');
+							cmds.ipfs_cmds.ipfsUpload("./sprite/sprite.png", 'sprite.ipfsAddSprite');
 							return stdout;
 						}
 					});
@@ -148,7 +148,7 @@ var cmds = {
 					console.log("Encoding completed, video index: " + encodedVideoIndex)
 					clearTimeout(timeoutfunc)
 					// when complete, upload to ipfs
-					cmds.ipfs_cmds.ipfsUpload(outputName, true, propIpfs);
+					cmds.ipfs_cmds.ipfsUpload(outputName, propIpfs);
 					cb();
 				});
 		}

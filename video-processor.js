@@ -103,7 +103,7 @@ http.createServer(function (req, res) {
 
 					// upload source file to ipfs
 					console.log("Uploading to IPFS")
-					cmds.ipfs_cmds.ipfsUpload(file.path, true, "ipfsAddSourceVideo");
+					cmds.ipfs_cmds.ipfsUpload(file.path, "ipfsAddSourceVideo");
 
 					//create sprite and upload it to ipfs (ipfs upload function is called within sprite function)
 					console.log("Making the sprite")
