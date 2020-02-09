@@ -271,7 +271,8 @@ var cmds = {
 			// code isn't 0 if error occurs
 			if (code) {
 				console.log(stderr);
-				process.exit();
+				cb(null)
+				// process.exit();
 			} else {
 				cb(null)
 			}
