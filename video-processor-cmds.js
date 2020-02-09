@@ -52,13 +52,14 @@ var cmds = {
 		},
 		// splits video into images
 		createVideoSplitCmd: (filePath, vidLength, resDir) => {
-			// if (vidLength > 600) {
-			// 	var frameRate = 100/vidLength;
-			// } else {
-			// 	var frameRate = 1;
-			// }
 
 			let frameRate = 100 / vidLength;
+
+			if (vidLength <= 100) {
+				frameRate = 1;
+			}
+
+			
 
 			return `ffmpeg -y -i ` + filePath + ` -r ` + frameRate + ` -vf scale=128:72 -f image2 ` + resDir + `/img%03d`
 		},
@@ -136,7 +137,7 @@ var cmds = {
 				.on('error', err => {
 					// console.log(err);
 					cmds.encoderResponse.encodedVideos[encodedVideoIndex].encode.errorMessage = err;
-					console.log("Exiting process, encoding error");
+					console.log("Exiting process, encoding error", err);
 					process.exit();
 				})
 				.on('progress', progress => {

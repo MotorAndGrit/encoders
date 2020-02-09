@@ -98,7 +98,13 @@ http.createServer(function (req, res) {
 					console.log(successResponse + " sent to user")
 					res.end(JSON.stringify(successResponse));
 
-					var videoHeight = fileData.streams[0].height;
+					var videoHeight = null
+					for (let i = 0; i < fileData.streams.length; i++) {
+						if (fileData.streams[i].height) {
+							videoHeight = fileData.streams[i].height;
+							break
+						}
+					}
 					var fileDuration = fileData.format.duration;
 
 					// upload source file to ipfs
