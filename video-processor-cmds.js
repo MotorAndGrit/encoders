@@ -2,6 +2,7 @@ const shell = require('shelljs');
 const ipfsAPI = require('ipfs-http-client');
 const fs = require('fs');
 const hbjs = require('handbrake-js')
+var config = require('./config.js')
 
 var ipfsIp = process.env.IPFSIP || '127.0.0.1';
 var ipfsPort = process.env.IPFSPORT || '5001';
@@ -233,7 +234,7 @@ var cmds = {
 		var oldEncodedVidPaths = ["fileres240.mp4", "fileres480.mp4"];
 
 		var is = fs.createReadStream(filePath);
-		var os = fs.createWriteStream("./longtermstore/" + cmds.encoderResponse.ipfsAddSourceVideo.hash);
+		var os = fs.createWriteStream(config.pathLongTerm + cmds.encoderResponse.ipfsAddSourceVideo.hash);
 
 		is.pipe(os);
 		is.on('end', function () {
@@ -242,14 +243,14 @@ var cmds = {
 
 		for (let i = 0; i < numOfEncodedVids; i++) {
 			is = fs.createReadStream(oldEncodedVidPaths[i]);
-			os = fs.createWriteStream("./longtermstore/" + cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.hash);
+			os = fs.createWriteStream(config.pathLongTerm + cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.hash);
 
 			is.pipe(os);
 			is.on('end', function () {
 				console.log(filePath, cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo)
 				cmds.symlink(
 					cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.hash,
-					"./longtermstore/"+cmds.encoderResponse.ipfsAddSourceVideo.hash+"_"+cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.encodeSize,
+					config.pathLongTerm+cmds.encoderResponse.ipfsAddSourceVideo.hash+"_"+cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.encodeSize,
 					function(err) {
 						console.log('symlinked '+cmds.encoderResponse.ipfsAddSourceVideo.hash+"_"+cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.encodeSize)
 					}
@@ -259,7 +260,7 @@ var cmds = {
 		}
 
 		is = fs.createReadStream("./sprite/sprite.png");
-		os = fs.createWriteStream("./longtermstore/" + cmds.encoderResponse.sprite.ipfsAddSprite.hash);
+		os = fs.createWriteStream(config.pathLongTerm + cmds.encoderResponse.sprite.ipfsAddSprite.hash);
 
 		is.pipe(os);
 		is.on('end', function () {

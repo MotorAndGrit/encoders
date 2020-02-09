@@ -3,11 +3,7 @@ const shell = require('shelljs');
 const uuidv4 = require('uuid/v4');
 const formidable = require('formidable');
 var cmds = require('./video-processor-cmds.js');
-
-// cross-origin resource sharing variable
-corsVar = process.env.CORSVAR || 'http://localhost:3000';
-// port variable
-port = process.env.PORT || 5000
+var config = require('./config.js')
 
 // variable to assure only one upload request happens
 var reqhappened = false;
@@ -18,7 +14,7 @@ const genToken = uuidv4();
 http.createServer(function (req, res) {
 
 	res.setHeader('access-control-allow-headers', 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range');
-	res.setHeader('access-control-allow-origin', corsVar);
+	res.setHeader('access-control-allow-origin', config.cors);
 	res.setHeader('access-control-allow-credentials', 'true');
 	res.setHeader('Content-Type', 'application/json; charset=utf-8');
 	res.setHeader('access-control-max-age', '600');
@@ -26,7 +22,10 @@ http.createServer(function (req, res) {
 	if (req.url == '/getStatus') {
 		console.log("getStatus Hit")
 		res.statusCode = 200;
-		res.end('{"version":"0.7.5","currentWaitingInQueue":{"audioCpuToEncode":0,"videoGpuToEncode":0,"audioVideoCpuToEncode":0,"spriteToCreate":0,"ipfsToAdd":0}}');
+		if (!reqhappened)
+			res.end('{"version":"'+config.version+'","currentWaitingInQueue":{"audioCpuToEncode":0,"videoGpuToEncode":0,"audioVideoCpuToEncode":0,"spriteToCreate":0,"ipfsToAdd":0}}');
+		else
+			res.end('{"version":"'+config.version+'","currentWaitingInQueue":{"audioCpuToEncode":0,"videoGpuToEncode":0,"audioVideoCpuToEncode":99,"spriteToCreate":0,"ipfsToAdd":99}}');
 	}
 
 	// sending encoder progress to user
@@ -108,17 +107,15 @@ http.createServer(function (req, res) {
 					}
 					var fileDuration = fileData.format.duration;
 
-					// upload source file to ipfs
-					console.log("Uploading to IPFS")
-					cmds.ipfs_cmds.ipfsUpload(file.path, "ipfsAddSourceVideo");
-
 					//create sprite and upload it to ipfs (ipfs upload function is called within sprite function)
 					console.log("Making the sprite")
 					cmds.sprite_cmds.sprite(file.path, fileDuration, "./sprite");
 
 					// videos under 240 res or longer than 10 minutes not encoded
-					if (videoHeight <= 240 || fileDuration > 600) {
-						console.log("No encoding, checkin if finished")
+					if (videoHeight <= 240 || fileDuration > config.maxEncodedDuration) {
+						// upload source file to ipfs
+						cmds.ipfs_cmds.ipfsUpload(file.path, "ipfsAddSourceVideo");
+						console.log("No encoding, uploading source to IPFS")
 						// checks if all procedures are done so that finish status can be set
 						cmds.checkIfFinished(file.path);
 
@@ -160,6 +157,6 @@ http.createServer(function (req, res) {
 		res.end("There's nothing here for you");
 	}
 
-}).listen(port, () => {
-	console.log("listening on port "+port);
+}).listen(config.port, () => {
+	console.log("listening on port "+config.port);
 });
