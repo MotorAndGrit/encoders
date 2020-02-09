@@ -6,6 +6,9 @@ const hbjs = require('handbrake-js')
 var ipfsIp = process.env.IPFSIP || '127.0.0.1';
 var ipfsPort = process.env.IPFSPORT || '5001';
 var ipfsProtocol = process.env.IPFSPROTOCOL || 'http';
+var ipfsOnlyHash = false;
+if (process.env.IPFSONLYHASH) ipfsOnlyHash = true
+
 
 var cmds = {
 	ffprobe_cmds: {
@@ -18,14 +21,14 @@ var cmds = {
 	},
 	ipfs_cmds: {
 		// uploads file to ipfs, second parameter is the property to update within encoder response
-		ipfsUpload: (filePath, justHash, prop) => {
+		ipfsUpload: (filePath, prop) => {
 			//Connceting to our http api
 			console.log(filePath)
 			const ipfs = ipfsAPI(ipfsIp, ipfsPort, { protocol: ipfsProtocol })
 			let videoFile = fs.readFileSync(filePath);
 			//let testBuffer = new Buffer.from(videoFile);
 
-			ipfs.add(videoFile, { "only-hash": justHash }, function (err, file) {
+			ipfs.add(videoFile, { "only-hash": ipfsOnlyHash }, function (err, file) {
 
 				if (err) {
 					console.log(err);
