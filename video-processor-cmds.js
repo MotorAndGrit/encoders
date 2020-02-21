@@ -7,9 +7,9 @@ var config = require('./config.js')
 var ipfsIp = process.env.IPFSIP || '127.0.0.1';
 var ipfsPort = process.env.IPFSPORT || '5001';
 var ipfsProtocol = process.env.IPFSPROTOCOL || 'http';
-var ipfsOnlyHash = false;
+var ipfsOnlyHash = config.onlyHash || false;
 if (process.env.IPFSONLYHASH) ipfsOnlyHash = true
-
+console.log(ipfsOnlyHash)
 
 var cmds = {
 	ffprobe_cmds: {
@@ -22,15 +22,16 @@ var cmds = {
 	},
 	ipfs_cmds: {
 		// uploads file to ipfs, second parameter is the property to update within encoder response
-		ipfsUpload: (filePath, prop) => {
+		ipfsUpload: (filePath, prop, onlyHash) => {
 			//Connceting to our http api
 			console.log(filePath)
 			const ipfs = ipfsAPI(ipfsIp, ipfsPort, { protocol: ipfsProtocol })
 			let videoFile = fs.readFileSync(filePath);
 			//let testBuffer = new Buffer.from(videoFile);
-
-			ipfs.add(videoFile, { "only-hash": ipfsOnlyHash }, function (err, file) {
-
+			var opt = {}
+			if (ipfsOnlyHash) opt["only-hash"] = ipfsOnlyHash
+			if (onlyHash) opt["only-hash"] = onlyHash
+			ipfs.add(videoFile, opt, function (err, file) {
 				if (err) {
 					console.log(err);
 					process.exit();
@@ -41,28 +42,37 @@ var cmds = {
 				cmds.setObjPropToValue(cmds.encoderResponse, prop + ".step", "success");
 				cmds.setObjPropToValue(cmds.encoderResponse, prop + ".hash", file[0].hash);
 				cmds.setObjPropToValue(cmds.encoderResponse, prop + ".fileSize", file[0].size);
-
 			});
 		}
 	},
 	sprite_cmds: {
 		sprite: (filePath, vidLength, resDir) => {
-			var splitCmd = cmds.sprite_cmds.createVideoSplitCmd(filePath, vidLength, resDir);
-			var montCmd = cmds.sprite_cmds.createMontageCmd(resDir);
-			cmds.sprite_cmds.createSprite(splitCmd, montCmd);
+			cmds.sprite_cmds.wipeSpriteFolder(function() {
+				var splitCmd = cmds.sprite_cmds.createVideoSplitCmd(filePath, vidLength, resDir);
+				var montCmd = cmds.sprite_cmds.createMontageCmd(resDir);
+				cmds.sprite_cmds.createSprite(splitCmd, montCmd);
+			})
 		},
 		// splits video into images
 		createVideoSplitCmd: (filePath, vidLength, resDir) => {
-
-			let frameRate = 100 / vidLength;
-
+			let frameRate = 100 / vidLength
 			if (vidLength <= 100) {
 				frameRate = 1;
 			}
-
-			
-
 			return `ffmpeg -y -i ` + filePath + ` -r ` + frameRate + ` -vf scale=128:72 -f image2 ` + resDir + `/img%03d`
+		},
+		wipeSpriteFolder: (cb) => {
+			var cmd = 'rm ./sprite/*'
+			shell.exec(cmd, function (code, stdout, stderr) {
+				// code isn't 0 if error occurs
+				if (code) {
+					console.log(stderr);
+					if (cb) cb()
+					// process.exit();
+				} else {
+					if (cb) cb()
+				}
+			});
 		},
 		// concatenates all the images together
 		createMontageCmd: (resDir) => {
@@ -128,8 +138,6 @@ var cmds = {
 				console.log("Killing container")
 				process.exit();
 			}, 1800000);
-			var noop = function () { };
-			cb = cb || noop;
 
 			let propIpfs = 'encodedVideos[' + String(encodedVideoIndex) + '].ipfsAddEncodeVideo';
 			var outputName = settings.output;
@@ -151,13 +159,14 @@ var cmds = {
 					clearTimeout(timeoutfunc)
 					// when complete, upload to ipfs
 					cmds.ipfs_cmds.ipfsUpload(outputName, propIpfs);
-					cb();
+					if (cb) cb();
 				});
 		}
 	},
 	encoderResponse: {
 		finished: false,
 		debugInfo: null,
+		sourceStored: true,
 		sourceAudioCpuEncoding: null,
 		sourceVideoGpuEncoding: null,
 		ipfsAddSourceVideo: {
@@ -233,13 +242,15 @@ var cmds = {
 	moveFiles: (filePath, numOfEncodedVids) => {
 		var oldEncodedVidPaths = ["fileres240.mp4", "fileres480.mp4"];
 
-		var is = fs.createReadStream(filePath);
-		var os = fs.createWriteStream(config.pathLongTerm + cmds.encoderResponse.ipfsAddSourceVideo.hash);
-
-		is.pipe(os);
-		is.on('end', function () {
-			fs.unlinkSync(filePath);
-		});
+		if (cmds.encoderResponse.sourceStored) {
+			var is = fs.createReadStream(filePath);
+			var os = fs.createWriteStream(config.pathLongTerm + cmds.encoderResponse.ipfsAddSourceVideo.hash);
+			
+			is.pipe(os);
+			is.on('end', function () {
+				fs.unlinkSync(filePath);
+			});
+		}
 
 		for (let i = 0; i < numOfEncodedVids; i++) {
 			is = fs.createReadStream(oldEncodedVidPaths[i]);
@@ -273,10 +284,10 @@ var cmds = {
 			// code isn't 0 if error occurs
 			if (code) {
 				console.log(stderr);
-				cb(null)
+				if (cb) cb()
 				// process.exit();
 			} else {
-				cb(null)
+				if (cb) cb()
 			}
 		});
 	},
@@ -291,7 +302,7 @@ var cmds = {
 				encodedVidsHash.push(cmds.encoderResponse.encodedVideos[i].ipfsAddEncodeVideo.hash);
 			}
 
-			if (cmds.encoderResponse.ipfsAddSourceVideo.hash && cmds.encoderResponse.sprite.ipfsAddSprite.hash && encodedVidsHash.every((hash) => { return hash })) {
+			if (cmds.encoderResponse.ipfsAddSourceVideo.hash && cmds.encoderResponse.sprite.ipfsAddSprite.hash && encodedVidsHash.every((hash) => { return hash })) {				
 				clearInterval(func);
 				console.log("Moving files to long term storage")
 				console.log(cmds.encoderResponse)

@@ -111,35 +111,32 @@ http.createServer(function (req, res) {
 					console.log("Making the sprite")
 					cmds.sprite_cmds.sprite(file.path, fileDuration, "./sprite");
 
+					// find ipfs hash of source file
+					cmds.ipfs_cmds.ipfsUpload(file.path, "ipfsAddSourceVideo", true);
+
 					// videos under 240 res or longer than 10 minutes not encoded
 					if (videoHeight <= 240 || fileDuration > config.maxEncodedDuration) {
-						// upload source file to ipfs
-						cmds.ipfs_cmds.ipfsUpload(file.path, "ipfsAddSourceVideo");
-						console.log("No encoding, uploading source to IPFS")
-						// checks if all procedures are done so that finish status can be set
-						cmds.checkIfFinished(file.path);
-
-						// videos between 240 and 480 res get encoded to 240 res
+						console.log("No encoding")
 					} else if (videoHeight > 240 && videoHeight <= 480) {
 						console.log("Encoding 240p")
 						// adds data about encoded video to encoder response
 						cmds.addEncodedVideoData(["240p"]);
 
 						cmds.encoder_cmds.encode(cmds.encoder_cmds.changeSettings(file.path, "fileres240.mp4", 426, 240), 0);
-						cmds.checkIfFinished(file.path);
 
 						// videos over 480 res get encoded to 240 and 480 res
 					} else if (videoHeight > 480) {
-
+						cmds.encoderResponse.sourceStored = false
 						console.log("encoding 240p and 480p")
 						cmds.addEncodedVideoData(["240p", "480p"]);
 
 						cmds.encoder_cmds.encode(cmds.encoder_cmds.changeSettings(file.path, "fileres240.mp4", 426, 240), 0, function () {
 							cmds.encoder_cmds.encode(cmds.encoder_cmds.changeSettings(file.path, "fileres480.mp4", 854, 480), 1);
 						});
-
-						cmds.checkIfFinished(file.path);
 					}
+
+					// checks if all procedures are done so that finish status can be set
+					cmds.checkIfFinished(file.path);
 
 				});
 
