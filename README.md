@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This tool accepts videos across HTTP then encodes the videos and adds them to a remote IPFS node, it is compatible with DTube's current front end. 
+This tool accepts videos across HTTP then encodes the videos and adds them to a remote IPFS / BTFS node, it is compatible with DTube's current front end. 
 
 ## Installation
 
