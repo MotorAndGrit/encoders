@@ -1,4 +1,5 @@
 const shell = require('shelljs');
+const { spawn } = require('child_process');
 const ipfsAPI = require('ipfs-http-client');
 const fs = require('fs');
 const hbjs = require('handbrake-js')
@@ -83,8 +84,23 @@ var cmds = {
 				process.exit();
 			}, 600000);
 
-			shell.exec(splitCmd, function (code, stdout, stderr) {
-				// code isn't 0 if error occurs
+			var cmd = splitCmd.split(' ')[0]
+			var opts = splitCmd.split(' ')
+			opts.splice(0,1)
+			let ffmpeg = spawn(cmd, opts)
+			ffmpeg.stderr.on('data', (data) => {
+				data = ''+data
+				data = data.split(' ')
+				var percent = data[3]-2
+				if (percent<0) percent=0
+				if (percent>100) percent=100
+				if (isNaN(percent)) return
+				percent = percent+'.00%'
+				cmds.encoderResponse.sprite.spriteCreation.progress = percent;
+				console.log('sprite '+percent)
+			})
+			ffmpeg.on('close', (code) => {
+				console.log(`ffmpeg child process exited with code ${code}`);
 				if (code) {
 					console.log(stderr);
 					process.exit();
