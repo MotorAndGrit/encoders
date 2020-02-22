@@ -55,8 +55,8 @@ var cmds = {
 		},
 		// splits video into images
 		createVideoSplitCmd: (filePath, vidLength, resDir) => {
-			let frameRate = vidLength / 100
-			if (frameRate < 1) frameRate = 1
+			let frameRate = 100 / vidLength
+			if (frameRate > 1) frameRate = 1
 			return `ffmpeg -y -i ` + filePath + ` -r ` + frameRate + ` -vf scale=128:72 -f image2 ` + resDir + `/img%03d`
 		},
 		wipeSpriteFolder: (cb) => {
