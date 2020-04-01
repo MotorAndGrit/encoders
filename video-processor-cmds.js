@@ -164,8 +164,9 @@ var cmds = {
 					process.exit();
 				})
 				.on('progress', progress => {
-					console.log("Encoding progress, video index: " + encodedVideoIndex)
-					cmds.encoderResponse.encodedVideos[encodedVideoIndex].encode.progress = String(progress.percentComplete) + "%";
+					var percent = String(progress.percentComplete) + "%";
+					console.log("Encoding #"+encodedVideoIndex+" progress: " + percent)
+					cmds.encoderResponse.encodedVideos[encodedVideoIndex].encode.progress = percent
 					cmds.encoderResponse.encodedVideos[encodedVideoIndex].encode.lastTimeProgress = Date();
 				})
 				.on('complete', () => {
